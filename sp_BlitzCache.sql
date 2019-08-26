@@ -279,6 +279,8 @@ SELECT @Version = '7.91', @VersionDate = '20191202';
 SELECT @Version = '7.7', @VersionDate = '20190826';
 SELECT @Version = '7.8', @VersionDate = '20190922';
 SELECT @Version = '7.91', @VersionDate = '20191202';
+SELECT @Version = '7.9', @VersionDate = '20191024';
+SELECT @Version = '7.7', @VersionDate = '20190826';
 
 
 IF(@VersionCheckMode = 1)
@@ -1133,9 +1135,12 @@ IF EXISTS(SELECT * FROM sys.all_columns WHERE OBJECT_ID = OBJECT_ID('sys.dm_exec
 ELSE
     SET @VersionShowsSpills = 0;
 
+/* This new 2019 & Azure SQL DB feature isn't working consistently, so turning it back off til Microsoft gets it ready.
+   See this Github issue for more details: https://github.com/BrentOzarULTD/SQL-Server-First-Responder-Kit/issues/2022
 IF EXISTS(SELECT * FROM sys.all_columns WHERE OBJECT_ID = OBJECT_ID('sys.dm_exec_query_plan_stats') AND name = 'query_plan')
     SET @VersionShowsAirQuoteActualPlans = 1;
 ELSE
+*/
     SET @VersionShowsAirQuoteActualPlans = 0;
 
 IF @Reanalyze = 1 AND OBJECT_ID('tempdb..##BlitzCacheResults') IS NULL
