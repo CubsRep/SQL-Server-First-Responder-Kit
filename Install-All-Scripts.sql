@@ -39,6 +39,7 @@ SELECT @Version = '3.8', @VersionDate = '20190922';
 SELECT @Version = '3.91', @VersionDate = '20191202';
 SELECT @Version = '3.9', @VersionDate = '20191024';
 SELECT @Version = '3.7', @VersionDate = '20190826';
+SELECT @Version = '3.8', @VersionDate = '20190922';
 
 IF(@VersionCheckMode = 1)
 BEGIN
@@ -1539,6 +1540,7 @@ SELECT @Version = '3.8', @VersionDate = '20190922';
 SELECT @Version = '3.91', @VersionDate = '20191202';
 SELECT @Version = '3.9', @VersionDate = '20191024';
 SELECT @Version = '3.7', @VersionDate = '20190826';
+SELECT @Version = '3.8', @VersionDate = '20190922';
 
 IF(@VersionCheckMode = 1)
 BEGIN
@@ -2871,6 +2873,7 @@ AS
 	SELECT @Version = '7.91', @VersionDate = '20191202';
 	SELECT @Version = '7.9', @VersionDate = '20191024';
 	SELECT @Version = '7.7', @VersionDate = '20190826';
+	SELECT @Version = '7.8', @VersionDate = '20190922';
 	SET @OutputType = UPPER(@OutputType);
 
     IF(@VersionCheckMode = 1)
@@ -11850,6 +11853,7 @@ AS
 	SELECT @Version = '3.91', @VersionDate = '20191202';
 	SELECT @Version = '3.9', @VersionDate = '20191024';
 	SELECT @Version = '3.7', @VersionDate = '20190826';
+	SELECT @Version = '3.8', @VersionDate = '20190922';
 	
 	IF(@VersionCheckMode = 1)
 	BEGIN
@@ -13631,6 +13635,7 @@ SELECT @Version = '7.8', @VersionDate = '20190922';
 SELECT @Version = '7.91', @VersionDate = '20191202';
 SELECT @Version = '7.9', @VersionDate = '20191024';
 SELECT @Version = '7.7', @VersionDate = '20190826';
+SELECT @Version = '7.8', @VersionDate = '20190922';
 
 
 IF(@VersionCheckMode = 1)
@@ -14485,12 +14490,9 @@ IF EXISTS(SELECT * FROM sys.all_columns WHERE OBJECT_ID = OBJECT_ID('sys.dm_exec
 ELSE
     SET @VersionShowsSpills = 0;
 
-/* This new 2019 & Azure SQL DB feature isn't working consistently, so turning it back off til Microsoft gets it ready.
-   See this Github issue for more details: https://github.com/BrentOzarULTD/SQL-Server-First-Responder-Kit/issues/2022
 IF EXISTS(SELECT * FROM sys.all_columns WHERE OBJECT_ID = OBJECT_ID('sys.dm_exec_query_plan_stats') AND name = 'query_plan')
     SET @VersionShowsAirQuoteActualPlans = 1;
 ELSE
-*/
     SET @VersionShowsAirQuoteActualPlans = 0;
 
 IF @Reanalyze = 1 AND OBJECT_ID('tempdb..##BlitzCacheResults') IS NULL
@@ -14525,6 +14527,13 @@ IF @SortOrder IN ('all', 'all avg')
 	RAISERROR(N'Checking all sort orders, please be patient', 0, 1) WITH NOWAIT;
     GOTO AllSorts;
 	END;
+
+IF @SortOrder = 'query hash'
+	BEGIN
+	RAISERROR(N'Checking most CPU-intensive queries with multiple plans', 0, 1) WITH NOWAIT;
+    GOTO QueryHash;
+	END;
+
 
 RAISERROR(N'Creating temp tables for internal processing', 0, 1) WITH NOWAIT;
 IF OBJECT_ID('tempdb..#only_query_hashes') IS NOT NULL
@@ -19876,6 +19885,69 @@ END;
 
 /*End of AllSort section*/
 
+/*Begin*/
+QueryHash:
+RAISERROR('Beginning query hash sort', 0, 1) WITH NOWAIT;
+
+BEGIN
+
+    SELECT qs.query_hash, 
+           MAX(qs.max_worker_time) AS max_worker_time,
+           COUNT_BIG(*) AS records
+    INTO #query_hash_grouped
+    FROM sys.dm_exec_query_stats AS qs
+    CROSS APPLY (   SELECT pa.value
+                    FROM   sys.dm_exec_plan_attributes(qs.plan_handle) AS pa
+                    WHERE  pa.attribute = 'dbid' ) AS ca
+    GROUP BY qs.query_hash, ca.value
+    HAVING COUNT_BIG(*) > 1
+    ORDER BY max_worker_time DESC,
+             records DESC;
+    
+    DECLARE @qhg NVARCHAR(MAX) = N''
+    
+    SELECT TOP (1)
+	         @qhg = STUFF((SELECT DISTINCT N',' + CONVERT(NVARCHAR(MAX), qhg.query_hash, 1) 
+    FROM #query_hash_grouped AS qhg 
+    WHERE qhg.query_hash <> 0x00
+    FOR XML PATH(N''), TYPE).value(N'.[1]', N'NVARCHAR(MAX)'), 1, 1, N'')
+	OPTION(RECOMPILE);
+    
+    EXEC sp_BlitzCache @Top = @Top,
+                       @SortOrder = 'cpu',                                             
+                       @UseTriggersAnyway = @UseTriggersAnyway,                                   
+                       @ExportToExcel = @ExportToExcel,                                       
+                       @ExpertMode = @ExpertMode,                                             
+                       @OutputServerName = @OutputServerName,                                     
+                       @OutputDatabaseName = @OutputDatabaseName,                                   
+                       @OutputSchemaName = @OutputSchemaName,                                     
+                       @OutputTableName = @OutputTableName,                                      
+                       @ConfigurationDatabaseName = @ConfigurationDatabaseName,                            
+                       @ConfigurationSchemaName = @ConfigurationSchemaName,                              
+                       @ConfigurationTableName = @ConfigurationTableName,                               
+                       @DurationFilter = @DurationFilter,                                      
+                       @HideSummary = @HideSummary,                                         
+                       @IgnoreSystemDBs = @IgnoreSystemDBs,                                     
+                       @OnlyQueryHashes = @qhg,                                       
+                       @IgnoreQueryHashes = @IgnoreQueryHashes,                                     
+                       @OnlySqlHandles = @OnlySqlHandles,                                        
+                       @IgnoreSqlHandles = @IgnoreSqlHandles,                                      
+                       @QueryFilter = @QueryFilter,                                           
+                       @DatabaseName = @DatabaseName,                                         
+                       @StoredProcName = @StoredProcName,                                       
+                       @SlowlySearchPlansFor = @SlowlySearchPlansFor,                                 
+                       @Reanalyze = @Reanalyze,                                           
+                       @SkipAnalysis = @SkipAnalysis,                                        
+                       @BringThePain = @BringThePain,                                        
+                       @MinimumExecutionCount = @MinimumExecutionCount,                                  
+                       @Debug = @Debug,                                               
+                       @CheckDateOverride = @CheckDateOverride,                  
+                       @MinutesBack = @MinutesBack;                                            
+    
+END;
+
+
+/*End*/
 
 /*Begin code to sort by all*/
 OutputResultsToTable:
@@ -20141,6 +20213,7 @@ SELECT @Version = '7.8', @VersionDate = '20190922';
 SELECT @Version = '7.91', @VersionDate = '20191202';
 SELECT @Version = '7.9', @VersionDate = '20191024';
 SELECT @Version = '7.7', @VersionDate = '20190826';
+SELECT @Version = '7.8', @VersionDate = '20190922';
 
 IF(@VersionCheckMode = 1)
 BEGIN
@@ -24238,6 +24311,7 @@ SELECT @Version = '7.8', @VersionDate = '20190922';
 SELECT @Version = '7.91', @VersionDate = '20191202';
 SELECT @Version = '7.9', @VersionDate = '20191024';
 SELECT @Version = '7.7', @VersionDate = '20190826';
+SELECT @Version = '7.8', @VersionDate = '20190922';
 SET @OutputType  = UPPER(@OutputType);
 
 IF(@VersionCheckMode = 1)
@@ -24325,8 +24399,6 @@ SELECT @SQLServerEdition =CAST(SERVERPROPERTY('EngineEdition') AS INT); /* We de
 SET @FilterMB=250;
 SELECT @ScriptVersionName = 'sp_BlitzIndex(TM) v' + @Version + ' - ' + DATENAME(MM, @VersionDate) + ' ' + RIGHT('0'+DATENAME(DD, @VersionDate),2) + ', ' + DATENAME(YY, @VersionDate);
 SET @IgnoreDatabases = REPLACE(REPLACE(LTRIM(RTRIM(@IgnoreDatabases)), CHAR(10), ''), CHAR(13), '');
-
-
 
 RAISERROR(N'Starting run. %s', 0,1, @ScriptVersionName) WITH NOWAIT;
 																					
@@ -29262,6 +29334,7 @@ SELECT @Version = '2.8', @VersionDate = '20190922';
 SELECT @Version = '2.91', @VersionDate = '20191202';
 SELECT @Version = '2.9', @VersionDate = '20191024';
 SELECT @Version = '2.7', @VersionDate = '20190826';
+SELECT @Version = '2.8', @VersionDate = '20190922';
 
 
 IF(@VersionCheckMode = 1)
@@ -30538,6 +30611,7 @@ SELECT @Version = '3.8', @VersionDate = '20190922';
 SELECT @Version = '3.91', @VersionDate = '20191202';
 SELECT @Version = '3.9', @VersionDate = '20191024';
 SELECT @Version = '3.7', @VersionDate = '20190826';
+SELECT @Version = '3.8', @VersionDate = '20190922';
 IF(@VersionCheckMode = 1)
 BEGIN
 	RETURN;
@@ -36272,6 +36346,7 @@ BEGIN
 	SELECT @Version = '7.91', @VersionDate = '20191202';
 	SELECT @Version = '7.9', @VersionDate = '20191024';
 	SELECT @Version = '7.7', @VersionDate = '20190826';
+	SELECT @Version = '7.8', @VersionDate = '20190922';
     
 	IF(@VersionCheckMode = 1)
 	BEGIN
@@ -37182,6 +37257,7 @@ SELECT @Version = '7.8', @VersionDate = '20190922';
 SELECT @Version = '7.91', @VersionDate = '20191202';
 SELECT @Version = '7.9', @VersionDate = '20191024';
 SELECT @Version = '7.7', @VersionDate = '20190826';
+SELECT @Version = '7.8', @VersionDate = '20190922';
 
 IF(@VersionCheckMode = 1)
 BEGIN
@@ -38407,7 +38483,7 @@ ALTER PROCEDURE dbo.sp_foreachdb
 AS
     BEGIN
         SET NOCOUNT ON;
-        SELECT @Version = '3.7', @VersionDate = '20190826';
+        SELECT @Version = '3.8', @VersionDate = '20190922';
 		
 IF(@VersionCheckMode = 1)
 BEGIN
@@ -38701,6 +38777,7 @@ BEGIN
   SELECT @Version = '2.91', @VersionDate = '20191202';
   SELECT @Version = '2.9', @VersionDate = '20191024';
   SELECT @Version = '2.7', @VersionDate = '20190826';
+  SELECT @Version = '2.8', @VersionDate = '20190922';
   
 IF(@VersionCheckMode = 1)
 BEGIN
