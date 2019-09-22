@@ -53,25 +53,25 @@ If you want to add a new check, start at 63
 | 100 | Indexes | ColumnStore Row Mode | https://www.brentozar.com/blitzcache/columnstore-indexes-operating-row-mode/ | 41 | Yes |
 | 50 | Functions | Computed Column UDF | https://www.brentozar.com/blitzcache/computed-columns-referencing-functions/ | 42 | Yes |
 | 100 | Execution Plan | Expensive Sort | http://www.brentozar.com/blitzcache/expensive-sorts/ | 43 | No |
-| 50 | Functions | Filter UDF | https://www.brentozar.com/blitzcache/compute-scalar-functions/ | 44 | Yes |
-| 100 | Indexes | \>= 5 Indexes Modified | https://www.brentozar.com/blitzcache/many-indexes-modified/ | 45 | Yes |
-| 200 | Complexity | Row Level Security | https://www.brentozar.com/blitzcache/row-level-security/ | 46 | Yes |
-| 200 | Complexity | Spatial Index | https://www.brentozar.com/blitzcache/spatial-indexes/ | 47 | Yes |
-| 150 | Complexity                                    | Index DML | https://www.brentozar.com/blitzcache/index-dml/ | 48 | Yes |
-| 150 | Complexity | Table DML | https://www.brentozar.com/blitzcache/table-dml/ | 49 | Yes |
-| 150 | Blocking | Long Running Low CPU | https://www.brentozar.com/blitzcache/long-running-low-cpu/ | 50 | No |
-| 150 | Complexity | Low Cost Query With High CPU | https://www.brentozar.com/blitzcache/low-cost-high-cpu/ | 51 | No |
-| 150 | Statistics | Statistics used have > 100k modifications in the last 7 days | https://www.brentozar.com/blitzcache/stale-statistics/ | 52 | No |
-| 200 | Complexity | Adaptive Joins | https://www.brentozar.com/blitzcache/adaptive-joins/ | 53 | No |
-| 150 | Indexes | Expensive Index Spool | https://www.brentozar.com/blitzcache/eager-index-spools/ | 54 | No |
-| 150 | Indexes | Large Index Row Spool | https://www.brentozar.com/blitzcache/eager-index-spools/ | 55 | No |
-| 100 | Complexity | Row Estimate Mismatch | https://www.brentozar.com/blitzcache/bad-estimates/ | 56 | Yes |
+| 50 | Filters Referencing Scalar UDFs | This forces serialization | https://www.brentozar.com/blitzcache/compute-scalar-functions/ | 44 | Yes |
+| 100 | Many Indexes Modified | Write Queries Are Hitting >= 5 Indexes | https://www.brentozar.com/blitzcache/many-indexes-modified/ | 45 | Yes |
+| 200 | Plan Confusion | Row Level Security is in use | https://www.brentozar.com/blitzcache/row-level-security/ | 46 | Yes |
+| 200 | Spatial Abuse | You hit a Spatial Index | https://www.brentozar.com/blitzcache/spatial-indexes/ | 47 | Yes |
+| 150 | Index DML | Indexes were created or dropped | https://www.brentozar.com/blitzcache/index-dml/ | 48 | Yes |
+| 150 | Table DML | Tables were created or dropped | https://www.brentozar.com/blitzcache/table-dml/ | 49 | Yes |
+| 150 | Long Running Low CPU | You have a query that runs for much longer than it uses CPU | https://www.brentozar.com/blitzcache/long-running-low-cpu/ | 50 | No |
+| 150 | Low Cost Query With High CPU | You have a low cost query that uses a lot of CPU | https://www.brentozar.com/blitzcache/low-cost-high-cpu/ | 51 | No |
+| 150 | Biblical Statistics | Statistics used in queries are >7 days old with >100k modifications | https://www.brentozar.com/blitzcache/stale-statistics/ | 52 | No |
+| 200 | Adaptive joins | Living in the future | https://www.brentozar.com/blitzcache/adaptive-joins/ | 53 | No |
+| 150 | Expensive Index Spool | You have an index spool, this is usually a sign that there's an index missing somewhere. | https://www.brentozar.com/blitzcache/eager-index-spools/ | 54 | No |
+| 150 | Index Spools Many Rows | You have an index spool that spools more rows than the query returns | https://www.brentozar.com/blitzcache/eager-index-spools/ | 55 | No |
+| 100 | Potentially bad cardinality estimates | Estimated rows are different from average rows by a factor of 10000 | https://www.brentozar.com/blitzcache/bad-estimates/ | 56 | Yes |
 | 200 | Is Paul White Electric? | This query has a Switch operator in it! | https://www.sql.kiwi/2013/06/hello-operator-my-switch-is-bored.html | 998 | Yes |
-| 200 | Database Level Statistics | Database has stats updated 7 days ago with more than 100k modifications | https://www.brentozar.com/blitzcache/stale-statistics/ | 997 | No |
-| 200 | Complexity | Row Goals | https://www.brentozar.com/go/rowgoals/ | 58 | Yes |
-| 100 | TempDB | >500mb Spills | https://www.brentozar.com/blitzcache/tempdb-spills/ | 59 | No |
-| 100 | Functions | MSTVFs | http://brentozar.com/blitzcache/tvf-join/ | 60 | No |
-| 100 | Complexity | Many to Many Merge | Blog not published yet | 61 | Yes |
+| 200 | Database Level Statistics | Database has stats updated 7 days ago with more than 100k modifications | https://www.brentozar.com/blitzcache/stale-statistics/ | 999 | No |
+| 200 | Row Goals | This query had row goals introduced | https://www.brentozar.com/go/rowgoals/ | 58 | Yes |
+| 100 | tempdb Spills | This query spills >500mb to tempdb on average | https://www.brentozar.com/blitzcache/tempdb-spills/ | 59 | No |
+| 100 | MSTVFs | These have many of the same problems scalar UDFs have | http://brentozar.com/blitzcache/tvf-join/ | 60 | No |
+| 100 | Many to Many Merge | These use secret worktables that could be doing lots of reads | Blog not published yet | 61 | Yes |
 | 50 | Non-SARGable queries | Queries may have non-SARGable predicates |http://brentozar.com/go/sargable| 62 | No |
 | 50 | Selects w/ Writes | Read queries are causing writes | https://dba.stackexchange.com/questions/191825/ | This is thrown when reads cause writes that are not already flagged as big spills (2016+) or index spools | No |
 | 254 | Plan Cache Information | Breaks cache down by creation date (24/4/1 hrs) | None | 999 | No |
