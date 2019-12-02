@@ -40,6 +40,7 @@ SELECT @Version = '3.91', @VersionDate = '20191202';
 SELECT @Version = '3.9', @VersionDate = '20191024';
 SELECT @Version = '3.7', @VersionDate = '20190826';
 SELECT @Version = '3.8', @VersionDate = '20190922';
+SELECT @Version = '3.91', @VersionDate = '20191202';
 
 IF(@VersionCheckMode = 1)
 BEGIN
@@ -1541,6 +1542,7 @@ SELECT @Version = '3.91', @VersionDate = '20191202';
 SELECT @Version = '3.9', @VersionDate = '20191024';
 SELECT @Version = '3.7', @VersionDate = '20190826';
 SELECT @Version = '3.8', @VersionDate = '20190922';
+SELECT @Version = '3.91', @VersionDate = '20191202';
 
 IF(@VersionCheckMode = 1)
 BEGIN
@@ -2874,6 +2876,7 @@ AS
 	SELECT @Version = '7.9', @VersionDate = '20191024';
 	SELECT @Version = '7.7', @VersionDate = '20190826';
 	SELECT @Version = '7.8', @VersionDate = '20190922';
+	SELECT @Version = '7.91', @VersionDate = '20191202';
 	SET @OutputType = UPPER(@OutputType);
 
     IF(@VersionCheckMode = 1)
@@ -11854,6 +11857,7 @@ AS
 	SELECT @Version = '3.9', @VersionDate = '20191024';
 	SELECT @Version = '3.7', @VersionDate = '20190826';
 	SELECT @Version = '3.8', @VersionDate = '20190922';
+	SELECT @Version = '3.91', @VersionDate = '20191202';
 	
 	IF(@VersionCheckMode = 1)
 	BEGIN
@@ -13636,6 +13640,7 @@ SELECT @Version = '7.91', @VersionDate = '20191202';
 SELECT @Version = '7.9', @VersionDate = '20191024';
 SELECT @Version = '7.7', @VersionDate = '20190826';
 SELECT @Version = '7.8', @VersionDate = '20190922';
+SELECT @Version = '7.91', @VersionDate = '20191202';
 
 
 IF(@VersionCheckMode = 1)
@@ -20214,6 +20219,7 @@ SELECT @Version = '7.91', @VersionDate = '20191202';
 SELECT @Version = '7.9', @VersionDate = '20191024';
 SELECT @Version = '7.7', @VersionDate = '20190826';
 SELECT @Version = '7.8', @VersionDate = '20190922';
+SELECT @Version = '7.91', @VersionDate = '20191202';
 
 IF(@VersionCheckMode = 1)
 BEGIN
@@ -24312,6 +24318,7 @@ SELECT @Version = '7.91', @VersionDate = '20191202';
 SELECT @Version = '7.9', @VersionDate = '20191024';
 SELECT @Version = '7.7', @VersionDate = '20190826';
 SELECT @Version = '7.8', @VersionDate = '20190922';
+SELECT @Version = '7.91', @VersionDate = '20191202';
 SET @OutputType  = UPPER(@OutputType);
 
 IF(@VersionCheckMode = 1)
@@ -29335,6 +29342,7 @@ SELECT @Version = '2.91', @VersionDate = '20191202';
 SELECT @Version = '2.9', @VersionDate = '20191024';
 SELECT @Version = '2.7', @VersionDate = '20190826';
 SELECT @Version = '2.8', @VersionDate = '20190922';
+SELECT @Version = '2.91', @VersionDate = '20191202';
 
 
 IF(@VersionCheckMode = 1)
@@ -30612,6 +30620,7 @@ SELECT @Version = '3.91', @VersionDate = '20191202';
 SELECT @Version = '3.9', @VersionDate = '20191024';
 SELECT @Version = '3.7', @VersionDate = '20190826';
 SELECT @Version = '3.8', @VersionDate = '20190922';
+SELECT @Version = '3.91', @VersionDate = '20191202';
 IF(@VersionCheckMode = 1)
 BEGIN
 	RETURN;
@@ -36347,6 +36356,7 @@ BEGIN
 	SELECT @Version = '7.9', @VersionDate = '20191024';
 	SELECT @Version = '7.7', @VersionDate = '20190826';
 	SELECT @Version = '7.8', @VersionDate = '20190922';
+	SELECT @Version = '7.91', @VersionDate = '20191202';
     
 	IF(@VersionCheckMode = 1)
 	BEGIN
@@ -37258,6 +37268,7 @@ SELECT @Version = '7.91', @VersionDate = '20191202';
 SELECT @Version = '7.9', @VersionDate = '20191024';
 SELECT @Version = '7.7', @VersionDate = '20190826';
 SELECT @Version = '7.8', @VersionDate = '20190922';
+SELECT @Version = '7.91', @VersionDate = '20191202';
 
 IF(@VersionCheckMode = 1)
 BEGIN
@@ -38778,6 +38789,7 @@ BEGIN
   SELECT @Version = '2.9', @VersionDate = '20191024';
   SELECT @Version = '2.7', @VersionDate = '20190826';
   SELECT @Version = '2.8', @VersionDate = '20190922';
+  SELECT @Version = '2.91', @VersionDate = '20191202';
   
 IF(@VersionCheckMode = 1)
 BEGIN
