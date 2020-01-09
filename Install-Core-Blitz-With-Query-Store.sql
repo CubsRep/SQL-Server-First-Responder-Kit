@@ -37,6 +37,16 @@ AS
 	SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED;
 	
 
+	SELECT @Version = '7.9', @VersionDate = '20191024';
+	SELECT @Version = '7.7', @VersionDate = '20190826';
+	SELECT @Version = '7.8', @VersionDate = '20190922';
+	SELECT @Version = '7.91', @VersionDate = '20191202';
+	SELECT @Version = '7.7', @VersionDate = '20190826';
+	SELECT @Version = '7.8', @VersionDate = '20190922';
+	SELECT @Version = '7.91', @VersionDate = '20191202';
+	SELECT @Version = '7.9', @VersionDate = '20191024';
+	SELECT @Version = '7.7', @VersionDate = '20190826';
+	SELECT @Version = '7.8', @VersionDate = '20190922';
 	SELECT @Version = '7.91', @VersionDate = '20191202';
 	SET @OutputType = UPPER(@OutputType);
 
@@ -9008,6 +9018,16 @@ AS
     SET NOCOUNT ON;
 	SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED;
 	
+	SELECT @Version = '3.9', @VersionDate = '20191024';
+	SELECT @Version = '3.7', @VersionDate = '20190826';
+	SELECT @Version = '3.8', @VersionDate = '20190922';
+	SELECT @Version = '3.91', @VersionDate = '20191202';
+	SELECT @Version = '3.7', @VersionDate = '20190826';
+	SELECT @Version = '3.8', @VersionDate = '20190922';
+	SELECT @Version = '3.91', @VersionDate = '20191202';
+	SELECT @Version = '3.9', @VersionDate = '20191024';
+	SELECT @Version = '3.7', @VersionDate = '20190826';
+	SELECT @Version = '3.8', @VersionDate = '20190922';
 	SELECT @Version = '3.91', @VersionDate = '20191202';
 	
 	IF(@VersionCheckMode = 1)
@@ -10781,6 +10801,16 @@ BEGIN
 SET NOCOUNT ON;
 SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED;
 
+SELECT @Version = '7.9', @VersionDate = '20191024';
+SELECT @Version = '7.7', @VersionDate = '20190826';
+SELECT @Version = '7.8', @VersionDate = '20190922';
+SELECT @Version = '7.91', @VersionDate = '20191202';
+SELECT @Version = '7.7', @VersionDate = '20190826';
+SELECT @Version = '7.8', @VersionDate = '20190922';
+SELECT @Version = '7.91', @VersionDate = '20191202';
+SELECT @Version = '7.9', @VersionDate = '20191024';
+SELECT @Version = '7.7', @VersionDate = '20190826';
+SELECT @Version = '7.8', @VersionDate = '20190922';
 SELECT @Version = '7.91', @VersionDate = '20191202';
 
 
@@ -11541,6 +11571,7 @@ DECLARE @DurationFilter_i INT,
 		@VersionShowsAirQuoteActualPlans BIT,
         @ObjectFullName NVARCHAR(2000)
 ;
+		@VersionShowsAirQuoteActualPlans BIT;
 
 
 IF @SortOrder = 'sp_BlitzIndex'
@@ -11672,6 +11703,13 @@ IF @SortOrder IN ('all', 'all avg')
 	RAISERROR(N'Checking all sort orders, please be patient', 0, 1) WITH NOWAIT;
     GOTO AllSorts;
 	END;
+
+IF @SortOrder = 'query hash'
+	BEGIN
+	RAISERROR(N'Checking most CPU-intensive queries with multiple plans', 0, 1) WITH NOWAIT;
+    GOTO QueryHash;
+	END;
+
 
 RAISERROR(N'Creating temp tables for internal processing', 0, 1) WITH NOWAIT;
 IF OBJECT_ID('tempdb..#only_query_hashes') IS NOT NULL
@@ -17023,6 +17061,69 @@ END;
 
 /*End of AllSort section*/
 
+/*Begin*/
+QueryHash:
+RAISERROR('Beginning query hash sort', 0, 1) WITH NOWAIT;
+
+BEGIN
+
+    SELECT qs.query_hash, 
+           MAX(qs.max_worker_time) AS max_worker_time,
+           COUNT_BIG(*) AS records
+    INTO #query_hash_grouped
+    FROM sys.dm_exec_query_stats AS qs
+    CROSS APPLY (   SELECT pa.value
+                    FROM   sys.dm_exec_plan_attributes(qs.plan_handle) AS pa
+                    WHERE  pa.attribute = 'dbid' ) AS ca
+    GROUP BY qs.query_hash, ca.value
+    HAVING COUNT_BIG(*) > 1
+    ORDER BY max_worker_time DESC,
+             records DESC;
+    
+    DECLARE @qhg NVARCHAR(MAX) = N''
+    
+    SELECT TOP (1)
+	         @qhg = STUFF((SELECT DISTINCT N',' + CONVERT(NVARCHAR(MAX), qhg.query_hash, 1) 
+    FROM #query_hash_grouped AS qhg 
+    WHERE qhg.query_hash <> 0x00
+    FOR XML PATH(N''), TYPE).value(N'.[1]', N'NVARCHAR(MAX)'), 1, 1, N'')
+	OPTION(RECOMPILE);
+    
+    EXEC sp_BlitzCache @Top = @Top,
+                       @SortOrder = 'cpu',                                             
+                       @UseTriggersAnyway = @UseTriggersAnyway,                                   
+                       @ExportToExcel = @ExportToExcel,                                       
+                       @ExpertMode = @ExpertMode,                                             
+                       @OutputServerName = @OutputServerName,                                     
+                       @OutputDatabaseName = @OutputDatabaseName,                                   
+                       @OutputSchemaName = @OutputSchemaName,                                     
+                       @OutputTableName = @OutputTableName,                                      
+                       @ConfigurationDatabaseName = @ConfigurationDatabaseName,                            
+                       @ConfigurationSchemaName = @ConfigurationSchemaName,                              
+                       @ConfigurationTableName = @ConfigurationTableName,                               
+                       @DurationFilter = @DurationFilter,                                      
+                       @HideSummary = @HideSummary,                                         
+                       @IgnoreSystemDBs = @IgnoreSystemDBs,                                     
+                       @OnlyQueryHashes = @qhg,                                       
+                       @IgnoreQueryHashes = @IgnoreQueryHashes,                                     
+                       @OnlySqlHandles = @OnlySqlHandles,                                        
+                       @IgnoreSqlHandles = @IgnoreSqlHandles,                                      
+                       @QueryFilter = @QueryFilter,                                           
+                       @DatabaseName = @DatabaseName,                                         
+                       @StoredProcName = @StoredProcName,                                       
+                       @SlowlySearchPlansFor = @SlowlySearchPlansFor,                                 
+                       @Reanalyze = @Reanalyze,                                           
+                       @SkipAnalysis = @SkipAnalysis,                                        
+                       @BringThePain = @BringThePain,                                        
+                       @MinimumExecutionCount = @MinimumExecutionCount,                                  
+                       @Debug = @Debug,                                               
+                       @CheckDateOverride = @CheckDateOverride,                  
+                       @MinutesBack = @MinutesBack;                                            
+    
+END;
+
+
+/*End*/
 
 /*Begin code to sort by all*/
 OutputResultsToTable:
@@ -17279,6 +17380,16 @@ BEGIN
 SET NOCOUNT ON;
 SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED;
 
+SELECT @Version = '7.9', @VersionDate = '20191024';
+SELECT @Version = '7.7', @VersionDate = '20190826';
+SELECT @Version = '7.8', @VersionDate = '20190922';
+SELECT @Version = '7.91', @VersionDate = '20191202';
+SELECT @Version = '7.7', @VersionDate = '20190826';
+SELECT @Version = '7.8', @VersionDate = '20190922';
+SELECT @Version = '7.91', @VersionDate = '20191202';
+SELECT @Version = '7.9', @VersionDate = '20191024';
+SELECT @Version = '7.7', @VersionDate = '20190826';
+SELECT @Version = '7.8', @VersionDate = '20190922';
 SELECT @Version = '7.91', @VersionDate = '20191202';
 
 IF(@VersionCheckMode = 1)
@@ -18727,6 +18838,7 @@ BEGIN
                 r.[database_id] AS DatabaseID,
                 DB_NAME(r.database_id) AS DatabaseName,
                 0 AS OpenTransactionCount,
+                0 AS OpenTransactionCount
                 r.query_hash
             FROM sys.dm_os_waiting_tasks tBlocked
 	        INNER JOIN sys.dm_exec_sessions s ON tBlocked.blocking_session_id = s.session_id
@@ -21367,6 +21479,16 @@ AS
 SET NOCOUNT ON;
 SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED;
 
+SELECT @Version = '7.9', @VersionDate = '20191024';
+SELECT @Version = '7.7', @VersionDate = '20190826';
+SELECT @Version = '7.8', @VersionDate = '20190922';
+SELECT @Version = '7.91', @VersionDate = '20191202';
+SELECT @Version = '7.7', @VersionDate = '20190826';
+SELECT @Version = '7.8', @VersionDate = '20190922';
+SELECT @Version = '7.91', @VersionDate = '20191202';
+SELECT @Version = '7.9', @VersionDate = '20191024';
+SELECT @Version = '7.7', @VersionDate = '20190826';
+SELECT @Version = '7.8', @VersionDate = '20190922';
 SELECT @Version = '7.91', @VersionDate = '20191202';
 SET @OutputType  = UPPER(@OutputType);
 
@@ -26381,6 +26503,16 @@ BEGIN
 SET NOCOUNT ON;
 SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED;
 
+SELECT @Version = '2.9', @VersionDate = '20191024';
+SELECT @Version = '2.7', @VersionDate = '20190826';
+SELECT @Version = '2.8', @VersionDate = '20190922';
+SELECT @Version = '2.91', @VersionDate = '20191202';
+SELECT @Version = '2.7', @VersionDate = '20190826';
+SELECT @Version = '2.8', @VersionDate = '20190922';
+SELECT @Version = '2.91', @VersionDate = '20191202';
+SELECT @Version = '2.9', @VersionDate = '20191024';
+SELECT @Version = '2.7', @VersionDate = '20190826';
+SELECT @Version = '2.8', @VersionDate = '20190922';
 SELECT @Version = '2.91', @VersionDate = '20191202';
 
 
@@ -27649,6 +27781,16 @@ BEGIN /*First BEGIN*/
 SET NOCOUNT ON;
 SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED;
 
+SELECT @Version = '3.9', @VersionDate = '20191024';
+SELECT @Version = '3.7', @VersionDate = '20190826';
+SELECT @Version = '3.8', @VersionDate = '20190922';
+SELECT @Version = '3.91', @VersionDate = '20191202';
+SELECT @Version = '3.7', @VersionDate = '20190826';
+SELECT @Version = '3.8', @VersionDate = '20190922';
+SELECT @Version = '3.91', @VersionDate = '20191202';
+SELECT @Version = '3.9', @VersionDate = '20191024';
+SELECT @Version = '3.7', @VersionDate = '20190826';
+SELECT @Version = '3.8', @VersionDate = '20190922';
 SELECT @Version = '3.91', @VersionDate = '20191202';
 IF(@VersionCheckMode = 1)
 BEGIN
@@ -33375,6 +33517,16 @@ BEGIN
 	SET NOCOUNT ON;
 	SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED;
 	
+	SELECT @Version = '7.9', @VersionDate = '20191024';
+	SELECT @Version = '7.7', @VersionDate = '20190826';
+	SELECT @Version = '7.8', @VersionDate = '20190922';
+	SELECT @Version = '7.91', @VersionDate = '20191202';
+	SELECT @Version = '7.7', @VersionDate = '20190826';
+	SELECT @Version = '7.8', @VersionDate = '20190922';
+	SELECT @Version = '7.91', @VersionDate = '20191202';
+	SELECT @Version = '7.9', @VersionDate = '20191024';
+	SELECT @Version = '7.7', @VersionDate = '20190826';
+	SELECT @Version = '7.8', @VersionDate = '20190922';
 	SELECT @Version = '7.91', @VersionDate = '20191202';
     
 	IF(@VersionCheckMode = 1)
